@@ -1,0 +1,100 @@
+import random
+import time
+import os
+
+
+class Cellule:
+    def __init__(self, vivant=False):
+        self.vivant = vivant
+        self.futur = False
+
+    def est_vivant(self):
+        return self.vivant
+
+    def naitre(self):
+        self.futur = True
+
+    def mourir(self):
+        self.futur = False
+
+    def basculer(self):
+        self.vivant = self.futur
+
+    def __str__(self):
+        return "⬜" if self.vivant else "⬛"
+
+    def calcule_etat_futur(self, voisins):
+        nb_vivants = sum(1 for v in voisins if v.est_vivant())
+
+        if self.est_vivant():
+            self.futur = nb_vivants in (2, 3)
+        else:
+            self.futur = nb_vivants == 3
+
+
+class Grille:
+    def __init__(self, largeur: int, hauteur: int):
+        self.largeur = largeur
+        self.hauteur = hauteur
+        self.cellules = [[Cellule() for _ in range(largeur)] for _ in range(hauteur)]
+
+    def dans_grille(self, i, j):
+        return 0 <= i < self.hauteur and 0 <= j < self.largeur
+
+    def get(self, i, j):
+        if self.dans_grille(i, j):
+            return self.cellules[i][j]
+        return None  # ou une cellule morte si on veut
+
+    def voisins(self, i, j):
+        dirs = [(-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1)]
+        liste = []
+        for di, dj in dirs:
+            ni, nj = i + di, j + dj
+            if self.dans_grille(ni, nj):
+                liste.append(self.get(ni, nj))
+        return liste
+
+    def __str__(self):
+        return "\n".join(
+            "".join(str(self.cellules[i][j]) for j in range(self.largeur))
+            for i in range(self.hauteur)
+        )
+
+    def randomiser(self, prob=0.3):
+        for i in range(self.hauteur):
+            for j in range(self.largeur):
+                if random.random() < prob:
+                    self.cellules[i][j].vivant = True
+                else:
+                    self.cellules[i][j].vivant = False
+
+    def mise_a_jour(self):
+        # Phase 1 : calculer tous les états futurs
+        for i in range(self.hauteur):
+            for j in range(self.largeur):
+                vois = self.voisins(i, j)
+                self.cellules[i][j].calcule_etat_futur(vois)
+
+    def evolution(self):
+        # Phase 2 : appliquer les changements
+        for i in range(self.hauteur):
+            for j in range(self.largeur):
+                self.cellules[i][j].basculer()
+
+
+if __name__ == "__main__":
+    grille = Grille(40, 25)          # plus grand = plus joli
+    grille.randomiser(0.25)
+
+    try:
+        while True:
+            os.system("cls" if os.name == "nt" else "clear")
+            print(grille)
+            print(f"   Grille {grille.largeur}×{grille.hauteur} — q pour quitter")
+            grille.mise_a_jour()
+            grille.evolution()
+            time.sleep(0.15)          # plus rapide = plus fluide
+
+    except KeyboardInterrupt:
+        print("\nAu revoir !")
